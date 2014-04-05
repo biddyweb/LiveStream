@@ -19,14 +19,12 @@ import java.util.ArrayList;
 public class Server {
     private int LISTENINGPORT;
     private int RTPPORT;
-    private ArrayList<Stream> streamArrayList;
+    private Stream stream;
     private final static String CLRF = "\r\n";
 
     public Server(int LISTENINGPORT, int RTPPORT){
         this.LISTENINGPORT = LISTENINGPORT;
-        this.streamArrayList = new ArrayList<Stream>();
-
-        streamArrayList.add(new Stream(1, RTPPORT, new MobileClient()));
+        this.stream = new Stream(1, RTPPORT, new MobileClient());
     }
 
     /*
@@ -38,6 +36,9 @@ public class Server {
 
         try {
             server = new ServerSocket(LISTENINGPORT);
+            Thread thread = new Thread(new ForwardingRunnable(this.stream));
+
+            thread.start();         //fork a thread to forward the RTP packet
 
             while (true){
                 Socket connection = null;
@@ -54,10 +55,10 @@ public class Server {
                         int port = Integer.parseInt(reader.readLine());
 
                         //add a new viewer
-                        this.streamArrayList.get(0).viewers.add(
-                                new Viewer(connection.getInetAddress(), port));
-
-                        printStreams();                         //check the stream
+                        synchronized (this.stream){
+                            this.stream.viewers.add(
+                                    new Viewer(connection.getInetAddress(), port));
+                        }
                     }
                 }
                 catch (IOException ex){
@@ -69,38 +70,6 @@ public class Server {
             System.out.print("Cannot Create Server!");
         }
 
-    }
-
-    /*
-    forwarding the packet
-     */
-    private void forwardingRTPPacket(Stream stream){
-        DatagramSocket socket = null;
-        DatagramPacket RTPpacket = null;
-
-        try{
-            socket = new DatagramSocket(stream.RTPPORT);
-            RTPpacket = new DatagramPacket(new byte[512], 512);
-
-            socket.setSoTimeout(15000);
-            socket.receive(RTPpacket);
-
-            //here should deal with the synchronization
-            for (Viewer viewer : stream.viewers){
-                DatagramPacket forward = new DatagramPacket(RTPpacket.getData(), RTPpacket.getLength(), viewer.getAddress(), viewer.getPort());
-                socket.send(forward);
-            }
-        }
-        catch (IOException ex){
-            System.out.println(ex);
-        }
-
-    }
-
-    private void printStreams(){
-        for (Stream stream : streamArrayList){
-            System.out.println("RTP Port #:" + stream.RTPPORT);
-        }
     }
 
     public static void main(String[] args){
