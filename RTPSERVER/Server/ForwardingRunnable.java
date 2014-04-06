@@ -2,6 +2,7 @@ package RTPSERVER.Server;
 
 import RTPSERVER.Stream.Stream;
 import RTPSERVER.Stream.Viewer;
+import com.sun.swing.internal.plaf.synth.resources.synth_sv;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -23,18 +24,20 @@ public class ForwardingRunnable implements Runnable {
         DatagramPacket RTPpacket = null;
 
         try{
+            System.out.println("Start to forward");
             socket = new DatagramSocket(stream.RTPPORT);
-            RTPpacket = new DatagramPacket(new byte[512], 512);
 
-            socket.setSoTimeout(15000);
-            socket.receive(RTPpacket);
+            while (true){
+                RTPpacket = new DatagramPacket(new byte[512], 512);
+                socket.receive(RTPpacket);
 
-            //here should deal with the synchronization
-            synchronized (this.stream){
-                for (Viewer viewer : stream.viewers){
-                    DatagramPacket forward = new DatagramPacket(RTPpacket.getData(),
-                            RTPpacket.getLength(), viewer.getAddress(), viewer.getPort());
-                    socket.send(forward);
+                //here should deal with the synchronization
+                synchronized (this.stream){
+                    for (Viewer viewer : stream.viewers){
+                        DatagramPacket forward = new DatagramPacket(RTPpacket.getData(),
+                                RTPpacket.getLength(), viewer.getAddress(), viewer.getPort());
+                        socket.send(forward);
+                    }
                 }
             }
         }

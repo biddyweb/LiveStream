@@ -58,6 +58,7 @@ public class Server {
                         synchronized (this.stream){
                             this.stream.viewers.add(
                                     new Viewer(connection.getInetAddress(), port));
+                            printStream();
                         }
                     }
                 }
@@ -70,6 +71,11 @@ public class Server {
             System.out.print("Cannot Create Server!");
         }
 
+    }
+
+    public void printStream(){
+        for (Viewer viewer : this.stream.viewers)
+            System.out.println(viewer.getAddress().toString() + ":" + viewer.getPort());
     }
 
     public static void main(String[] args){
